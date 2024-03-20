@@ -51,9 +51,9 @@ def get_ncc_descriptors(img, patchsize):
             mean = np.mean(copy_patch, axis=2, keepdims=True)
             # print(mean.shape)
             copy_patch -= mean # cp- H x W x 3 (r,g,b)
-            flat_array = copy_patch.flatten()
+            flat_array = copy_patch.reshape(-1)
             normalize = flat_array/np.linalg.norm(flat_array)
-            normalized_image[y][x] = normalize
+            normalized_image[y,x] = normalize
     return normalized_image
             
 
@@ -93,8 +93,8 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
 
         right_sliced = right_descriptors[:,:r_width-d,:]
         left_sliced = left_descriptors[:,d:,:]
-        print("TRightSLiced Shape:" + str(right_sliced.shape))
-        print("TLeftSLiced Shape:" + str(left_sliced.shape))
+        # print("TRightSLiced Shape:" + str(right_sliced.shape))
+        # print("TLeftSLiced Shape:" + str(left_sliced.shape))
         ncc_vol[d,:,:r_width-d]= np.sum(right_sliced*left_sliced, axis=2)
         # #shift left descriptor 
         # for y in range(r_height):

@@ -4,6 +4,7 @@ from PIL import Image
 import os
 import utils
 def ripples(sz):
+    np.random.seed(2021)
     dr = sz/10
     num=3
     y, x = np.meshgrid(np.arange(sz), np.arange(sz))
@@ -18,6 +19,7 @@ def ripples(sz):
     return output
 
 def mountains(sz):
+    np.random.seed(2021)
     num=50
     y, x = np.meshgrid(np.arange(sz), np.arange(sz))
     output = np.zeros((sz, sz))
