@@ -23,39 +23,27 @@ def get_ncc_descriptors(img, patchsize):
     If the norm of the vector is <1e-6 before normalizing, zero out the vector.
     '''
 
-    height,width,channels = img.shape #find the specific order
-
-    # Stores a copy of the original image
-    normalized_image = np.zeros([height, width,(channels * patchsize**2)])  
+    height, width, channels = img.shape
+    descriptors = np.zeros((height, width, channels * patchsize**2))
     for y in range(height):
         for x in range(width):
-            start_x = x - (patchsize-1)//2
-            end_x   = x+ (patchsize-1)//2
-            start_y = y - (patchsize-1)//2
-            end_y   = y + (patchsize-1)//2
+            start_patch_y, end_patch_y= max(0, y - patchsize // 2), min(height, y + patchsize // 2 + 1)
+            start_patch_x,end_patch_x= max(0, x - patchsize // 2), min(width, x + patchsize // 2 + 1)
 
-            copy_patch = np.zeros([patchsize,patchsize,3])
-            #make a copy patch of fixed size (7,7,3) no matter if part of original patch OOB
-            # -3, -2, -1, 0, 1, 2, 3 -> 0, 1, 2, 3, 4, 5, 6 
-            for inner_y in range(start_y,end_y+1):
-                for inner_x in range(start_x, end_x+1):
-                    offset = (patchsize-1)//2
-                 
-                    # if patch goes out of bounds zero the value
-                    if (inner_x<0 or inner_x >= width) or (inner_y<0 or inner_y>=height):
-                        copy_patch[(inner_y+offset)%patchsize][(inner_x+offset)%patchsize] = 0
-                    # else "copy" pixel value from original image into patch
-                    else: 
-                        copy_patch[(inner_y+offset)%patchsize][(inner_x+offset)%patchsize]= img[inner_y][inner_x]
-                
-            mean = np.mean(copy_patch, axis=2, keepdims=True)
-            # print(mean.shape)
-            copy_patch -= mean # cp- H x W x 3 (r,g,b)
-            flat_array = copy_patch.reshape(-1)
-            normalize = flat_array/np.linalg.norm(flat_array)
-            normalized_image[y,x] = normalize
-    return normalized_image
-            
+            # Check if the patch extends beyond the image boundaries
+            if start_patch_y == 0 or end_patch_y == height or start_patch_x == 0 or end_patch_x == width:
+                # If so, keep the descriptor as zeros.
+                continue
+
+            patch = img[start_patch_y :end_patch_y , start_patch_x: end_patch_x, :]
+
+            patch_mean = np.mean(patch, axis=(0, 1))
+            patch -= patch_mean
+            flat_patch = patch.reshape(-1)
+            norm = np.linalg.norm(flat_patch)
+            descriptors[y, x, :] = flat_patch / norm
+
+    return descriptors
 
 def compute_ncc_vol(img_right, img_left, patchsize, dmax):
     '''
@@ -84,28 +72,16 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
     left_descriptors = get_ncc_descriptors(img_left, patchsize)
     print("TRight Shape:" + str(right_descriptors.shape))
     print("TLeft Shape:" + str(left_descriptors.shape))
-    
-
-    
-    # normalized images  [:,d:,:]
    
-    for d in range(dmax): # should include dmax as well
+    for d in range(dmax): 
 
         right_sliced = right_descriptors[:,:r_width-d,:]
         left_sliced = left_descriptors[:,d:,:]
-        # print("TRightSLiced Shape:" + str(right_sliced.shape))
-        # print("TLeftSLiced Shape:" + str(left_sliced.shape))
+       
         ncc_vol[d,:,:r_width-d]= np.sum(right_sliced*left_sliced, axis=2)
-        # #shift left descriptor 
-        # for y in range(r_height):
-        #     for x in range(r_width): # the left image is offset by d: (x+d, y)
-        #         #ensure index is in bounds
-        #         dot_prod = right_sliced[y, x] * left_sliced[y, x]
-        #         ncc_vol[d, y, x] = dot_prod  # Use 
     return ncc_vol
 
             
-        
 def get_disparity(ncc_vol):
     '''
     Get disparity from the NCC-based cost volume
@@ -118,7 +94,7 @@ def get_disparity(ncc_vol):
     '''
     max_indx = np.argmax(ncc_vol,axis=0)
     return max_indx
-    # return np.max(ncc_vol, axis=0)
+
 
 
 
