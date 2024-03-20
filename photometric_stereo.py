@@ -68,7 +68,6 @@ def photometric_stereo(images, lights):
     return albedo_image, normals_image
 
 
-
     # red_albedo,red_normal = photometric_stereo_singlechannel(red, lights)
     # green_albedo,green_normal = photometric_stereo_singlechannel(green, lights)
     # blue_albedo,blue_normal = photometric_stereo_singlechannel(blue, lights)

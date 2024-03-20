@@ -33,9 +33,6 @@ def get_ncc_descriptors(img, patchsize):
             end_x   = x+ (patchsize-1)//2
             start_y = y - (patchsize-1)//2
             end_y   = y + (patchsize-1)//2
-            r_sum=0
-            g_sum=0
-            b_sum=0
 
             copy_patch = np.zeros([patchsize,patchsize,3])
             #make a copy patch of fixed size (7,7,3) no matter if part of original patch OOB
@@ -50,35 +47,9 @@ def get_ncc_descriptors(img, patchsize):
                     # else "copy" pixel value from original image into patch
                     else: 
                         copy_patch[(inner_y+offset)%patchsize][(inner_x+offset)%patchsize]= img[inner_y][inner_x]
-                    
-            # Check if there exists some easier way to do this in numpy
-            # Sums up the channels for each pixel
-            #TypeError: 'float' object cannot be interpreted as an integer
-            # for patch_y in range(0,patchsize):
-            #     for patch_x in range(0,patchsize):
-            #         r_sum += copy_patch[patch_y][patch_x][0] # gives R for this pixel
-            #         g_sum += copy_patch[patch_y][patch_x][1] # gives G for this pixel
-            #         b_sum += copy_patch[patch_y][patch_x][2] # gives B for this pixel
-
-            # # Compute the mean for every channel
-            # patch_num_pixels = (patchsize)**2   
-            # r_avg = r_sum / patch_num_pixels
-            # g_avg = g_sum / patch_num_pixels
-            # b_avg = b_sum / patch_num_pixels
-             # Subtract mean
-                        
-            #  # NOTE: subtract the mean of each channel from every pixel in the patch - what if mean is greater than actual value ?
-            # for patch_y in range(0,patchsize):
-            #     for patch_x in range(0,patchsize): # SWAP THE OTHER WAY
-            #         copy_patch[patch_y][patch_x][0] -= r_avg
-            #         copy_patch[patch_y][patch_x][1] -= g_avg
-            #         copy_patch[patch_y][patch_x][2] -= b_avg
-            # flat_array = copy_patch.flatten()
-            # normalize = flat_array/np.linalg.norm(flat_array)
-            # normalized_image[y][x] = normalize
-                        
+                
             mean = np.mean(copy_patch, axis=2, keepdims=True)
-            print(mean.shape)
+            # print(mean.shape)
             copy_patch -= mean # cp- H x W x 3 (r,g,b)
             flat_array = copy_patch.flatten()
             normalize = flat_array/np.linalg.norm(flat_array)
@@ -109,31 +80,28 @@ def compute_ncc_vol(img_right, img_left, patchsize, dmax):
     ncc_vol = np.zeros([dmax, r_height, r_width])
     
     # normalized images
-    right_decriptors = get_ncc_descriptors(img_right, patchsize)
-    left_decriptors = get_ncc_descriptors(img_left, patchsize)
-    print("TRight Shape:" + str(right_decriptors.shape))
-    print("TLeft Shape:" + str(left_decriptors.shape))
-    # result = np.dot(right_decriptors[1][1],left_decriptors[1][1+1])
-    # result1 = np.dot(right_decriptors[1,1], left_decriptors[1,1])
-    # print(result1.shape)
-    # print(result.shape)
-    # print(result)
-    # print(result1)
-    # print(dmax)
-    # print(ncc_vol[1][2][3].shape)
-    # ncc_vol[1][2][3]= result 
-    ncc_vol = np.zeros([dmax, r_height, r_width])
-    
-    # normalized images
     right_descriptors = get_ncc_descriptors(img_right, patchsize)
     left_descriptors = get_ncc_descriptors(img_left, patchsize)
-    for d in range(0,dmax): # should include dmax as well
-        for y in range(r_height):
-            for x in range(r_width): # the left image is offset by d: (x+d, y)
-                #ensure index is in bounds
-                if(x+d <r_width):
-                    dot_prod = np.dot(right_descriptors[y, x], left_descriptors[y, x+d])
-                    ncc_vol[d, y, x] = dot_prod  # Use 
+    print("TRight Shape:" + str(right_descriptors.shape))
+    print("TLeft Shape:" + str(left_descriptors.shape))
+    
+
+    
+    # normalized images  [:,d:,:]
+   
+    for d in range(dmax): # should include dmax as well
+
+        right_sliced = right_descriptors[:,:r_width-d,:]
+        left_sliced = left_descriptors[:,d:,:]
+        print("TRightSLiced Shape:" + str(right_sliced.shape))
+        print("TLeftSLiced Shape:" + str(left_sliced.shape))
+        ncc_vol[d,:,:r_width-d]= np.sum(right_sliced*left_sliced, axis=2)
+        # #shift left descriptor 
+        # for y in range(r_height):
+        #     for x in range(r_width): # the left image is offset by d: (x+d, y)
+        #         #ensure index is in bounds
+        #         dot_prod = right_sliced[y, x] * left_sliced[y, x]
+        #         ncc_vol[d, y, x] = dot_prod  # Use 
     return ncc_vol
 
             
